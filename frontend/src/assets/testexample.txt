@@ -1,0 +1,183 @@
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchBookAction, searchBooks, filterBooks  } from '../../redux/actions/books/booksAction';
+
+const Library = () => {
+  const dispatch = useDispatch();
+  const allBooks = useSelector((state) => state.bookLists.book) || [];
+  const [books, setBooks] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const booksPerPage = 20;
+
+  useEffect(() => {
+    dispatch(fetchBookAction());
+  }, [dispatch]);
+
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * booksPerPage;
+    const endIndex = startIndex + booksPerPage;
+    setBooks(allBooks.slice(startIndex, endIndex));
+  }, [allBooks, currentPage]);
+
+  const totalPages = Math.ceil(allBooks.length / booksPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+
+  const handleSearch = (e) => {
+    const searchTerm = e.target.value;
+    setSearchTerm(searchTerm);
+    dispatch(searchBooks(searchTerm));
+  };
+
+  const handleFilter = (e) => {
+    const category = e.target.value;
+    dispatch(filterBooks(category));
+  };
+
+  const renderBooks = () => {
+    let filteredBooks = books;
+  
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase();
+      filteredBooks = books.filter(
+        (book) =>
+          book.title.toLowerCase().includes(query) ||
+          book.author.toLowerCase().includes(query)
+      );
+    }
+
+    if (filteredBooks.length === 0) {
+      return <p>No matching books found.</p>;
+    }
+
+
+    return filteredBooks.map((book) => (
+      <div key={book._id} className='col mb-4'>
+        <div className='card h-100'>
+          <img
+            className='card-img-top'
+            height='300px'
+            width='200px'
+            src={book.coverImageUrl}
+            alt='book cover'
+          />
+          <div className='card-body'>
+            <h4 className='card-title'>{book.title}</h4>
+            <p className='card-text'>{book.author}</p>
+            <button
+              type='button'
+              className='btn btn-primary'
+              data-toggle='modal'
+              data-target={`#exampleModalCenter-${book._id}`}
+            >
+              Book details
+            </button>
+          </div>
+        </div>
+      </div>
+    ));
+  };
+
+ 
+
+  return (
+    <div className='container'>
+      <h2>Library</h2>
+
+      <input type="text" placeholder="Search by title or author" onChange={handleSearch} />
+      <select onChange={handleFilter}>
+        <option value="">All</option>
+        <option value="life">Life</option>
+        <option value="culture">Culture</option>
+        <option value="religion">Religion</option>
+        <option value="fiction">Fiction</option>
+        <option value="sci-fi">Sci-Fi</option>
+      </select>
+
+      <p>All books</p>
+      <div className='row row-cols-1 row-cols-md-4'>{renderBooks()}</div>
+
+      {totalPages > 1 && (
+        <div className='pagination justify-content-center'>
+          <ul className='pagination'>
+            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+              <button
+                className='page-link'
+                onClick={() => handlePageChange(currentPage - 1)}
+                aria-label='Previous'
+              >
+                <span aria-hidden='true'>&laquo;</span>
+              </button>
+            </li>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <li
+                key={pageNumber}
+                className={`page-item ${pageNumber === currentPage ? 'active' : ''}`}
+              >
+                <button className='page-link' onClick={() => handlePageChange(pageNumber)}>
+                  {pageNumber}
+                </button>
+              </li>
+            ))}
+            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+              <button
+                className='page-link'
+                onClick={() => handlePageChange(currentPage + 1)}
+                aria-label='Next'
+              >
+                <span aria-hidden='true'>&raquo;</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      )}
+
+      {books.map((book) => (
+        <div
+          key={book._id}
+          className='modal fade'
+          id={`exampleModalCenter-${book._id}`}
+          tabIndex='-1'
+          role='dialog'
+          aria-labelledby={`exampleModalLongTitle-${book._id}`}
+          aria-hidden='true'
+        >
+          <div className='modal-dialog modal-dialog-centered' role='document'>
+            <div className='modal-content'>
+              <div className='modal-header'>
+                <h5 className='modal-title' id={`exampleModalLongTitle-${book._id}`}>
+                  {book.title}
+                </h5>
+                <button type='button' className='close' data-dismiss='modal' aria-label='Close'>
+                  <span aria-hidden='true'>&times;</span>
+                </button>
+              </div>
+              <div className='modal-body'>
+                <img src={book.coverImageUrl}  height='300px'
+            width='200px' alt='book cover' />
+                <p>{book.description}</p>
+              </div>
+              <div className='modal-footer'>
+                <button type='button' className='btn btn-secondary' data-dismiss='modal'>
+                  Close
+                </button>
+                <button type='button' className='btn btn-primary'>
+                  <a href={book.amazonLink} target='_blank' rel='noopener noreferrer'>
+                    Get on Amazon
+
+                  </a>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default Library;
